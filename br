@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Always run from repo root (this script lives there)
+cd "$(dirname "$0")"
+
+# Build if needed
+make -s bt
+
+# File arg → file mode; no arg → stdin mode
+if [ "$#" -ge 1 ]; then
+  exec ./bt "$1"
+else
+  exec ./bt
+fi
+
+

@@ -8,8 +8,8 @@
 
 
 
-void parse_expression(Token **token, SymbolTable *t);
-void parse_statement(Token **token, SymbolTable *t);
-void parse_program(Token *token, SymbolTable *t);
+void parse_expression(Token **token, struct SymbolTable *t);
+void parse_statement(Token **token, struct SymbolTable *t);
+void parse_program(Token *token, struct SymbolTable *t);
 
 #endif

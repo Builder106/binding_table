@@ -19,6 +19,6 @@ typedef struct {
 
 // Function prototypes
 Token *tokenize (const char *code);
-TokenType read_token(const char **code, Token *t);
+void read_token(const char **code, Token *t);
 
 #endif

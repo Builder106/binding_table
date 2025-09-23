@@ -24,8 +24,8 @@ void read_number(const char **code, Token *t) {
 void read_token(const char **code, Token *t) {
    int i = 0;
 
-   // Check if the current character is a letter
-   while (isalnum(**code)) {
+   // Accept letters, digits, and underscores for identifiers
+   while (isalnum(**code) || **code == '_') {
       t->value[i] = **code;
       i++;
       (*code)++;
@@ -36,7 +36,6 @@ void read_token(const char **code, Token *t) {
    if (strcmp(t->value, "int") == 0 ||
        strcmp(t->value, "float") == 0 ||
        strcmp(t->value, "double") == 0 ||
-       strcmp(t->value, "char*") == 0 ||
        strcmp(t->value, "char") == 0 ||
        strcmp(t->value, "if") == 0 ||
        strcmp(t->value, "else") == 0 ||
@@ -51,7 +50,7 @@ void read_token(const char **code, Token *t) {
        strcmp(t->value, "union") == 0 ||
        strcmp(t->value, "enum") == 0) {
       t->type = TOKEN_KEYWORD;
-   } else {
+      } else {
       t->type = TOKEN_IDENTIFIER;
    }
 }
@@ -77,6 +76,14 @@ Token *tokenize(const char *code) {
       if (isspace(*current_char)) {
          current_char++;
          continue;
+      }
+
+      // Handle preprocessor lines (e.g., #include <...>) by skipping to end of line
+      if (*current_char == '#') {
+          while (*current_char != '\n' && *current_char != '\0') {
+              current_char++;
+          }
+          continue;
       }
       
       // Step 2: Handle single-line comments.
@@ -107,8 +114,8 @@ Token *tokenize(const char *code) {
       // Step 4: Handle different token types.
       Token current_token;
 
-      // Check if the current character is a letter
-      if (isalpha(*current_char)) {
+      // Identifiers can start with a letter or underscore
+      if (isalpha(*current_char) || *current_char == '_') {
          read_token(&current_char, &current_token);
       } else if (isdigit(*current_char)) {
          // Check if the current character is a digit

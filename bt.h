@@ -8,6 +8,7 @@
 typedef enum  {
    TYPE_INT,
    TYPE_FLOAT,
+   TYPE_DOUBLE,
    TYPE_CHAR_PTR,
    TYPE_CHAR_ARRAY
 } VarType;
@@ -69,5 +70,32 @@ bool add(struct SymbolTable *t, const char *var_name, VarType type, void *value,
  * @param t A pointer to the desired SymbolTable
  */
 void free_symbols(struct SymbolTable *t);
+
+/**
+ * @brief Print the binding table in the format: S = {x |-> 5; name |-> addr}
+ * @return void
+ * @param t A pointer to the desired SymbolTable
+ */
+void print_binding_table(struct SymbolTable *t);
+
+/**
+ * @brief Format the binding table into the provided buffer.
+ * Example: "S = {x |-> 5; name |-> addr}"
+ */
+void format_binding_table(const struct SymbolTable *t, char *buffer, size_t buffer_size);
+
+// Stack/scope visualization and management
+void stack_reset();
+void stack_enter_scope();
+void stack_exit_scope(struct SymbolTable *t);
+void stack_on_declare(struct SymbolTable *t, const char *var_name);
+void format_stack(char *buffer, size_t buffer_size);
+
+// Multi-line boxed stack diagram for step-by-step visualization, including values.
+// Returns a newly malloc'ed string that the caller must free.
+char *format_stack_diagram(const struct SymbolTable *t);
+
+// Symbol table helpers
+bool remove_symbol(struct SymbolTable *t, const char *var_name);
 
 #endif

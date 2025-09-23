@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Binding Table Interpreter</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+    <h1>Binding Table Interpreter</h1>
+    <p class="lead">Enter code and click Run to see the binding table and stack evolution.</p>
+    <form id="code-form" hx-post="/run" hx-target="#result" hx-swap="innerHTML">
+      <textarea class="code-editor" id="code" name="code" placeholder="int x = 5; x = x + 3; char[10] name; char * A;"></textarea>
+      <div class="toolbar">
+        <button class="btn" type="submit">Run (Ctrl/Cmd+Enter)</button>
+        <select id="examples" class="btn">
+          <option value="">Examples…</option>
+          <option value="int x = 5; x = x + 3; char[10] name; char * A;">Declarations + update</option>
+          <option value="int i; int x; i = 4; x = 3; while (i < 7) { x = x + i; i = i + 2; }">While loop</option>
+        </select>
+      </div>
+    </form>
+    <div id="result" style="margin-top: 16px"></div>
+
+    <template id="tpl">
+      <div class="row">
+        <div class="panel">
+          <div class="section-title">Program Output</div>
+          <pre id="tableOut"></pre>
+          <div id="steps" style="margin-top:12px; display:none">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px">
+              <strong>Step viewer</strong>
+              <button class="btn" type="button" id="prevStep">Prev</button>
+              <span id="stepLabel">Step 1/1</span>
+              <button class="btn" type="button" id="nextStep">Next</button>
+            </div>
+            <div id="stepInfo" style="margin-bottom:6px"></div>
+            <pre id="stepDiagram"></pre>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="section-title">Errors</div>
+          <pre id="stderr"></pre>
+        </div>
+      </div>
+    </template>
+
+    <script>
+      // Keyboard shortcut: Ctrl/Cmd+Enter runs code
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          document.getElementById('code-form').dispatchEvent(new Event('submit', {cancelable: true}));
+        }
+      });
+
+      // Quick examples
+      document.getElementById('examples').addEventListener('change', (e) => {
+        if (e.target.value) {
+          document.getElementById('code').value = e.target.value;
+        }
+      });
+
+      function parseSteps(stdout) {
+        const parts = stdout.split('Stack evolution by step:');
+        const tableText = parts[0]?.trim() || '';
+        const stepsText = parts[1] || '';
+        const re = /Step\s+(\d+):([^\n]+)\nStack[^\n]*\n([\s\S]*?)(?=\nStep\s+\d+:|$)/g;
+        const steps = [];
+        let m;
+        while ((m = re.exec(stepsText))) {
+          steps.push({ num: parseInt(m[1],10), cmd: m[2].trim(), diagram: (m[3]||'').trim() });
+        }
+        return { tableText, steps };
+      }
+
+      function renderResult(target, res) {
+        const frag = document.getElementById('tpl').content.cloneNode(true);
+        const { tableText, steps } = parseSteps(res.stdout || '');
+        frag.getElementById('tableOut').textContent = tableText;
+        frag.getElementById('stderr').textContent = res.stderr || '';
+
+        if (steps.length > 0) {
+          const stepsEl = frag.getElementById('steps');
+          stepsEl.style.display = 'block';
+          let idx = 0;
+          const label = stepsEl.querySelector('#stepLabel');
+          const info = stepsEl.querySelector('#stepInfo');
+          const diagram = stepsEl.querySelector('#stepDiagram');
+          const prevBtn = stepsEl.querySelector('#prevStep');
+          const nextBtn = stepsEl.querySelector('#nextStep');
+          function update() {
+            label.textContent = `Step ${idx+1}/${steps.length}`;
+            info.textContent = steps[idx].cmd;
+            diagram.textContent = steps[idx].diagram;
+            prevBtn.disabled = (idx === 0);
+            nextBtn.disabled = (idx === steps.length - 1);
+          }
+          prevBtn.addEventListener('click', () => { if (idx>0){ idx--; update(); }});
+          nextBtn.addEventListener('click', () => { if (idx<steps.length-1){ idx++; update(); }});
+          update();
+        }
+
+        target.innerHTML = '';
+        target.appendChild(frag);
+      }
+
+      document.body.addEventListener('htmx:afterOnLoad', (evt) => {
+        try {
+          const res = JSON.parse(evt.detail.xhr.responseText);
+          renderResult(evt.detail.target, res);
+        } catch (e) {
+          // If JSON parse fails, just show raw response
+          evt.detail.target.innerHTML = '<pre>' + evt.detail.xhr.responseText + '</pre>';
+        }
+      });
+    </script>
+    </div>
+  </body>
+  </html>
+
+
